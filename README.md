@@ -61,7 +61,7 @@ Keep this running while using the app.
 ### 4. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/smalltalk.git
+git clone https://github.com/Daisysuyin/smalltalk.git
 cd smalltalk
 ```
 
