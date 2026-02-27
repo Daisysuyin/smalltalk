@@ -8,9 +8,9 @@ A production-ready iOS chat app that runs a large language model **entirely on-d
 
 ---
 
-## Screenshots
+## Demo
 
-> Chat interface with streaming responses, model status indicator, and conversation history.
+![Smalltalk Demo](demo.gif)
 
 ---
 
