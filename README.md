@@ -1,160 +1,89 @@
-# Smalltalk
+# Smalltalk — SwiftUI chat client for a locally hosted LLM
 
-A production-ready iOS chat app that runs a large language model **entirely on-device** via [Ollama](https://ollama.com) — no API keys, no cloud, no per-message cost.
+A SwiftUI iOS **client** that streams chat responses from [Ollama](https://ollama.com/) running on a Mac. It uses Swift 5.9 observation, MVVM, `URLSession`, and Ollama's newline-delimited JSON streaming API.
 
-![iOS 17+](https://img.shields.io/badge/iOS-17%2B-blue)
-![Swift 5.9+](https://img.shields.io/badge/Swift-5.9%2B-orange)
-![License](https://img.shields.io/badge/license-MIT-green)
+> **Scope and limitations:** The LLM does **not** run on the iPhone. The iOS Simulator connects to an Ollama service running on the development Mac at `http://localhost:11434`. This is a local prototype, **not** a production-ready iOS app. It currently has no persistent message history, no iOS-device endpoint configuration, and no transport security/authentication for a remote Ollama server.
 
----
-
-## Demo
-
-![Smalltalk Demo](demo.gif)
-
----
+![Smalltalk demo](demo.gif)
 
 ## Features
 
-- 💬 Real-time streaming responses token-by-token
-- 🔒 100% on-device inference — no data leaves your Mac
-- 🆓 Zero cost — no API fees, no subscriptions
-- 📜 Full conversation history with free scrolling
-- 🔄 Auto-reconnect with retry on Ollama connection failure
-- 🏗️ Clean MVVM architecture with Swift 5.9 `@Observable`
-- 📱 iOS 17+ SwiftUI, works in Simulator (Intel + Apple Silicon)
-
----
+- Token-by-token streaming into a SwiftUI chat interface
+- Async networking and streaming with `URLSession` and `AsyncThrowingStream`
+- SwiftUI MVVM state management with `@Observable`
+- Model availability check and error display
+- In-memory conversation history and clear-chat action
+- No external Swift dependencies
 
 ## Requirements
 
-| Tool | Version |
-|------|---------|
-| Xcode | 15+ |
-| iOS | 17+ |
-| Swift | 5.9+ |
-| [Ollama](https://ollama.com) | Latest |
-| macOS | 13+ |
+- macOS with Xcode 15+ (iOS 17 / Swift 5.9)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate `Smalltalk.xcodeproj`
+- Ollama installed **on the Mac** with the `llama3.2` model
+- An iOS Simulator running on the same Mac (the app's fixed localhost endpoint is for Simulator use)
 
----
-
-## Setup
-
-### 1. Install Ollama
-
-Download and install from [ollama.com/download](https://ollama.com/download).
-
-### 2. Pull the model
-
-```bash
-ollama pull llama3.2
-```
-
-### 3. Start Ollama
-
-```bash
-ollama serve
-```
-
-Keep this running while using the app.
-
-### 4. Clone the repo
+## Run locally
 
 ```bash
 git clone https://github.com/Daisysuyin/smalltalk.git
 cd smalltalk
+brew install xcodegen
+xcodegen generate
+ollama pull llama3.2
 ```
 
-### 5. Open in Xcode
+Start the Ollama application/service if it isn't already running. In a separate terminal verify:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+Open the generated project:
 
 ```bash
 open Smalltalk.xcodeproj
 ```
 
-### 6. Run
+Select an **iOS 17+ Simulator** and press **Cmd+R**. The project is generated from the checked-in `project.yml`; the `.xcodeproj` file is intentionally not tracked.
 
-Select a Simulator (iPhone 15 or later) and press **Cmd+R**.
-
----
+> On a physical iPhone, `localhost` refers to the **phone**, not your Mac. The current implementation requires endpoint configuration, a trusted transport, and network permissions before phone deployment. Do not expose an unauthenticated Ollama server to the public internet.
 
 ## Architecture
 
-```
-Smalltalk/
-├── SmalltalkApp.swift      # App entry point
-├── Models.swift            # Data models (Message, ModelState)
-├── Networking.swift        # Ollama API client, streaming engine
-├── ChatViewModel.swift     # MVVM ViewModel, business logic
-└── ChatView.swift          # SwiftUI views and components
-```
-
-### Key design decisions
-
-- **MVVM** — `ChatViewModel` owns all state, `ChatView` is purely reactive
-- **AsyncThrowingStream** — streaming tokens from Ollama via NDJSON
-- **@Observable** — Swift 5.9 observation macro, no `@Published` boilerplate
-- **No third-party dependencies** — pure Swift + Foundation + SwiftUI
-
----
-
-## How It Works
-
-```
-User types message
-       ↓
-ChatViewModel.sendMessage()
-       ↓
-InferenceEngine.generate()
-       ↓
-POST http://localhost:11434/api/chat  (Ollama)
-       ↓
-NDJSON stream → AsyncThrowingStream<String>
-       ↓
-Tokens appended to assistant message in real time
-       ↓
-SwiftUI renders each token as it arrives
+```text
+ChatView.swift           SwiftUI UI and conversation display
+        |
+ChatViewModel.swift      @Observable UI state, send and stream flow
+        |
+Networking.swift         InferenceEngine -> Ollama HTTP /api/tags and /api/chat
+        |
+Models.swift             Message and model state types
+SmalltalkApp.swift       App entry point
 ```
 
----
+`Networking.swift` uses `URLSession.shared.bytes(for:)` and parses Ollama NDJSON streaming lines. Conversation history is currently in memory only, and `clearChat` resets the UI state.
 
-## Changing the Model
+## Validation
 
-In `Networking.swift`, update the `model` property:
-
-```swift
-private let model = "llama3.2"       // default
-private let model = "llama3.2:1b"    // faster, smaller
-private let model = "mistral"        // alternative
-private let model = "codellama"      // code focused
-```
-
-Then pull the new model:
+To check the generated iOS project on macOS with Xcode:
 
 ```bash
-ollama pull mistral
+xcodegen generate
+xcodebuild -project Smalltalk.xcodeproj -scheme Smalltalk \
+  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO build
 ```
 
----
+GitHub Actions uses the same generation and simulator build commands. A passing build does **not** verify that Ollama is running or that live chat succeeds.
 
-## Future Improvements
+## Future work
 
-- [ ] Persist conversation history across app launches
-- [ ] Support multiple conversation threads
-- [ ] Model selector UI (switch models in-app)
-- [ ] Copy message to clipboard
-- [ ] Share conversation as text
-- [ ] iPad and macOS support
-- [ ] System prompt customization
-
----
+- Persist messages between app launches
+- Allow safe configurable Ollama endpoints for physical devices
+- Add UI / networking tests and a simulated streaming transport
+- Harden cancellation and error handling for connection loss
+- Add model selection and multi-conversation support
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-## Acknowledgements
-
-- [Ollama](https://ollama.com) — local LLM runtime
-- [Meta Llama 3.2](https://llama.meta.com) — open source language model
+MIT. See [LICENSE](LICENSE).

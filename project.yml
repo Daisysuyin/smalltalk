@@ -1,0 +1,24 @@
+name: Smalltalk
+options:
+  bundleIdPrefix: com.daisysuyin
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+targets:
+  Smalltalk:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: .
+        includes:
+          - "*.swift"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.daisysuyin.smalltalk
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+    scheme:
+      testTargets: []
